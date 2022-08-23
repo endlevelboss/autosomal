@@ -18,7 +18,7 @@
                     (io/output-stream filename)))]
     (csv/write-csv out input)))
 
-(def clean-dna 
+(def clean-dna
   (->> (read-gzipped-csv "randi.csv.gz")
        (remove #(= "0" (:ch %)))
        (remove #(= "X" (:ch %)))))
@@ -42,14 +42,19 @@
 
 (def mother {1 (random-dna) 2 (random-dna)})
 
-(defn randomize-crossovers [ch]
-  (let [num-of-crossovers (inc (rand-int 4))
-        chromosize (get chromo-size37 (dec (Integer/parseInt ch)))]
+(defn randomize-crossovers-2 [snps-count]
+  (let [num-of-crossovers (inc (rand-int 4))]
     (conj
      (into
       []
-      (sort (for [_ (range num-of-crossovers)] (rand-int chromosize))))
-     chromosize)))
+      (sort
+       (for [_ (range num-of-crossovers)] (rand-int snps-count))))
+     (dec snps-count))))
+
+(defn randomize-crossovers [ch]
+  (let [snps (into [] (sort-by :pos (filter #(= ch (:ch %)) clean-dna))) 
+        rand-xover (randomize-crossovers-2 (count snps))]
+    (map #(:pos (get snps %)) rand-xover)))
 
 (defn generate-dna-from-parent [parent]
   (loop [parent-1 (get parent 1)
@@ -93,8 +98,10 @@
       (write-gzipped-csv name)))
 
 (comment
-  
-  (save-child "test2.csv.gz")
+
+  (sort-by :pos (filter #(= "2" (:ch %)) clean-dna))
+
+  (save-child "test3.csv.gz")
 
   (generate-child)
 
